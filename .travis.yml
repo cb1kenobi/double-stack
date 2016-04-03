@@ -11,4 +11,4 @@ script:
   - npm run coverage
 after_success:
   - coveralls < ./coverage/lcov.info
-  - CODECLIMATE_REPO_TOKEN=?????? codeclimate-test-reporter < ./coverage/lcov.info
+  - CODECLIMATE_REPO_TOKEN=2c2d04dbc291f12cab79a233be1a99f94f0f70ff73186a9b13e06a39f771d10a codeclimate-test-reporter < ./coverage/lcov.info
