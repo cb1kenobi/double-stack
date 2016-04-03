@@ -20,7 +20,7 @@ export function getActiveHandles() {
 
 	for (let handle of process._getActiveHandles()) {
 		if (handle instanceof Timer) {
-			const timerList = handle._list;
+			const timerList = handle._list || handle;
 			let t = timerList._idleNext;
 			while (t !== timerList) {
 				handles.timers.push(t);

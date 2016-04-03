@@ -86,8 +86,15 @@ describe('active handles', () => {
 		}
 
 		if (this.server && this.server.listening) {
-			this.server.close(done);
+			this.server.close(finalize);
 		} else {
+			finalize();
+		}
+
+		function finalize() {
+			if (fs.existsSync('/tmp/test.sock')) {
+				fs.unlinkSync('/tmp/test.sock');
+			}
 			done();
 		}
 	});
@@ -114,31 +121,17 @@ describe('active handles', () => {
 	});
 
 	it('should get active setInterval timer', function (done) {
-		let initialTimerCount = 0;
+		let intervalTimer = null;
 
-		const fn = () => {
-			// I don't get this... why are there no timers for a setInterval()?
-			let handles = ds.getActiveHandles();
-			expect(handles.timers).to.have.lengthOf(initialTimerCount);
-
+		intervalTimer = this.intervalTimer = setInterval(() => {
+			const handles = ds.getActiveHandles();
+			expect(handles.timers).to.not.include(intervalTimer);
 			clearInterval(this.intervalTimer);
-
-			handles = ds.getActiveHandles();
-			expect(handles.timers).to.have.lengthOf(initialTimerCount);
-
 			done();
-		};
+		}, 500);
 
-		let handles = ds.getActiveHandles();
-		initialTimerCount = handles.timers.length;
-
-		this.intervalTimer = setInterval(fn, 500);
-
-		handles = ds.getActiveHandles();
-		expect(handles.timers).to.have.lengthOf(initialTimerCount + 1);
-
-		const timer = handles.timers[handles.timers.length - 1];
-		expect(timer._idleTimeout).to.equal(500);
+		const handles = ds.getActiveHandles();
+		expect(handles.timers).to.include(this.intervalTimer);
 	});
 
 	it('should get active servers', function (done) {
@@ -188,7 +181,11 @@ describe('active handles', () => {
 					setTimeout(() => {
 						const handles = ds.getActiveHandles();
 						expect(handles.sockets).to.have.lengthOf(initialSocketCount);
-						done();
+
+						this.server.close(() => {
+							this.server = null;
+							done();
+						});
 					}, 100);
 				});
 
