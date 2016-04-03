@@ -66,12 +66,18 @@ describe('options', () => {
 
 describe('active handles', () => {
 	beforeEach(function () {
+		this.timeoutTimer = null;
 		this.intervalTimer = null;
 		this.client = null;
 		this.server = null;
 	});
 
 	afterEach(function (done) {
+		if (this.timeoutTimer) {
+			clearTimeout(this.timeoutTimer);
+			this.timeoutTimer = null;
+		}
+
 		if (this.intervalTimer) {
 			clearInterval(this.intervalTimer);
 			this.intervalTimer = null;
@@ -99,7 +105,7 @@ describe('active handles', () => {
 		}
 	});
 
-	it('should get active setTimeout timer', done => {
+	it('should get active setTimeout timer', function testFunction(done) {
 		let initialTimerCount = 0;
 
 		const fn = () => {
@@ -111,21 +117,44 @@ describe('active handles', () => {
 		let handles = ds.getActiveHandles();
 		initialTimerCount = handles.timers.length;
 
-		setTimeout(fn, 100);
+		this.timeoutTimer = setTimeout(fn, 100);
 
 		handles = ds.getActiveHandles();
 		expect(handles.timers).to.have.lengthOf(initialTimerCount + 1);
+		expect(handles.timers).to.include(this.timeoutTimer);
 
-		const timer = handles.timers[handles.timers.length - 1];
-		expect(timer._idleTimeout).to.equal(100);
+		const htimer = handles.timers[handles.timers.length - 1];
+		expect(htimer._idleTimeout).to.equal(100);
+		expect(htimer).to.be.an.Object;
+		expect(htimer).to.have.property('__stack__');
+
+		const frame = htimer.__stack__[0];
+		expect(frame).to.be.an.Object;
+		expect(frame).to.have.all.keys('fileName', 'scriptName', 'evalOrigin', 'typeName', 'functionName', 'methodName', 'lineNumber', 'columnNumber', 'isToplevel', 'isEval', 'isNative', 'isConstructor', 'toString');
+		expect(frame.fileName).to.be.a.String;
+		expect(frame.fileName).to.equal(__filename);
+		expect(frame.scriptName).to.be.a.String;
+		expect(frame.scriptName).to.equal(__filename);
+		expect(frame.evalOrigin).to.be.a.String;
+		expect(frame.evalOrigin).to.equal(__filename);
+		expect(frame.typeName).to.be.a.String;
+		expect(frame.functionName).to.be.a.String;
+		expect(frame.functionName).to.equal('testFunction');
+		expect(frame.methodName).to.be.null;
+		expect(frame.lineNumber).to.be.a.Number;
+		expect(frame.columnNumber).to.be.a.Number;
+		expect(frame.isToplevel).to.be.false;
+		expect(frame.isEval).to.be.false;
+		expect(frame.isNative).to.be.false;
+		expect(frame.isConstructor).to.be.false;
+		expect(frame.toString()).to.be.a.String;
+		expect(frame.toString()).to.have.string(__filename);
 	});
 
 	it('should get active setInterval timer', function (done) {
-		let intervalTimer = null;
-
-		intervalTimer = this.intervalTimer = setInterval(() => {
+		this.intervalTimer = setInterval(() => {
 			const handles = ds.getActiveHandles();
-			expect(handles.timers).to.not.include(intervalTimer);
+			expect(handles.timers).to.not.include(this.intervalTimer);
 			clearInterval(this.intervalTimer);
 			done();
 		}, 500);
@@ -265,6 +294,20 @@ describe('throw', () => {
 		}
 
 		setTimeout(foo, 0);
+	});
+
+	it('should capture stack from function from a nextTick()', done => {
+		function foo() {
+			bar();
+		}
+
+		function bar() {
+			const stack = new Error().stack;
+			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			done();
+		}
+
+		process.nextTick(foo);
 	});
 
 	it('should not exceed trace limit', done => {

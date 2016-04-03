@@ -143,7 +143,29 @@ function wrap(originalFunction, callbackPosition, embedStack) {
 		// call the function
 		const handle = originalFunction.apply(this, args);
 		if (embedStack && handle) {
-			Object.defineProperty(handle, '__stack__', { value: stack.slice(1) });
+			const embeddedStack = [];
+			for (let frame of stack) {
+				if (frame.getFileName() !== __filename) {
+					frame = sourceMap.wrapCallSite(frame);
+					const rendered = frame.toString();
+					embeddedStack.push({
+						fileName:      frame.getFileName(),
+						scriptName:    frame.getScriptNameOrSourceURL(),
+						evalOrigin:    frame.getEvalOrigin(),
+						typeName:      frame.getTypeName(),
+						functionName:  frame.getFunctionName(),
+						methodName:    frame.getMethodName(),
+						lineNumber:    frame.getLineNumber(),
+						columnNumber:  frame.getColumnNumber(),
+						isToplevel:    frame.isToplevel(),
+						isEval:        frame.isEval(),
+						isNative:      frame.isNative(),
+						isConstructor: frame.isConstructor(),
+						toString:      () => rendered
+					});
+				}
+			}
+			Object.defineProperty(handle, '__stack__', { value: embeddedStack });
 		}
 		return handle;
 	};
