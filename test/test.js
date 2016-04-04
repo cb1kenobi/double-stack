@@ -424,7 +424,7 @@ describe('EventEmitter', () => {
 		emitter.on('foo', callback);
 		emitter.on('foo', callback);
 		emitter.emit('foo');
-		expect(callback.calledThrice).to.be.true
+		expect(callback.calledThrice).to.be.true;
 	});
 
 	it('should emit an event once', () => {
@@ -436,7 +436,7 @@ describe('EventEmitter', () => {
 		expect(emitter.once('foo', callback)).to.equal(emitter);
 		emitter.emit('foo');
 		emitter.emit('foo');
-		expect(callback.calledOnce).to.be.true
+		expect(callback.calledOnce).to.be.true;
 	});
 
 	it('should emit an event and capture stack from setTimeout()', done => {
@@ -448,7 +448,7 @@ describe('EventEmitter', () => {
 		emitter.on('foo', callback);
 		setTimeout(() => {
 			emitter.emit('foo');
-			expect(callback.calledOnce).to.be.true
+			expect(callback.calledOnce).to.be.true;
 			done();
 		}, 100);
 	});
@@ -462,7 +462,7 @@ describe('EventEmitter', () => {
 		emitter.once('foo', callback);
 		setTimeout(() => {
 			emitter.emit('foo');
-			expect(callback.calledOnce).to.be.true
+			expect(callback.calledOnce).to.be.true;
 			done();
 		}, 100);
 	});
@@ -478,7 +478,7 @@ describe('EventEmitter', () => {
 		}, 0);
 		setTimeout(() => {
 			emitter.emit('foo');
-			expect(callback.calledOnce).to.be.true
+			expect(callback.calledOnce).to.be.true;
 			done();
 		}, 100);
 	});
@@ -494,7 +494,7 @@ describe('EventEmitter', () => {
 		}, 0);
 		setTimeout(() => {
 			emitter.emit('foo');
-			expect(callback.calledOnce).to.be.true
+			expect(callback.calledOnce).to.be.true;
 			done();
 		}, 100);
 	});
