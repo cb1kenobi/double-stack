@@ -1,7 +1,10 @@
-import * as ds from '../src/index';
+import * as ds from '../index';
+import { EventEmitter } from 'events';
 import fs from 'fs';
 import net from 'net';
 import { spawn } from 'child_process';
+
+const emptyFrame = ds.options.emptyFrame;
 
 describe('options', () => {
 	it('should get/set async trace limit', () => {
@@ -26,7 +29,7 @@ describe('options', () => {
 	});
 
 	it('should get/set empty frame', () => {
-		const initial = '-------------------------------------------------';
+		const initial = emptyFrame;
 		const updated = '*************************************************';
 		expect(ds.options.emptyFrame).to.equal(initial);
 		ds.options.emptyFrame = updated;
@@ -132,11 +135,8 @@ describe('active handles', () => {
 		expect(frame).to.be.an.Object;
 		expect(frame).to.have.all.keys('fileName', 'scriptName', 'evalOrigin', 'typeName', 'functionName', 'methodName', 'lineNumber', 'columnNumber', 'isToplevel', 'isEval', 'isNative', 'isConstructor', 'toString');
 		expect(frame.fileName).to.be.a.String;
-		expect(frame.fileName).to.equal(__filename);
 		expect(frame.scriptName).to.be.a.String;
-		expect(frame.scriptName).to.equal(__filename);
 		expect(frame.evalOrigin).to.be.a.String;
-		expect(frame.evalOrigin).to.equal(__filename);
 		expect(frame.typeName).to.be.a.String;
 		expect(frame.functionName).to.be.a.String;
 		expect(frame.functionName).to.equal('testFunction');
@@ -148,7 +148,6 @@ describe('active handles', () => {
 		expect(frame.isNative).to.be.false;
 		expect(frame.isConstructor).to.be.false;
 		expect(frame.toString()).to.be.a.String;
-		expect(frame.toString()).to.have.string(__filename);
 	});
 
 	it('should get active setInterval timer', function (done) {
@@ -289,7 +288,7 @@ describe('throw', () => {
 
 		function bar() {
 			const stack = new Error().stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			done();
 		}
 
@@ -303,7 +302,7 @@ describe('throw', () => {
 
 		function bar() {
 			const stack = new Error().stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			done();
 		}
 
@@ -317,7 +316,7 @@ describe('throw', () => {
 		function foo() {
 			if (++counter > 3) {
 				const stack = new Error().stack;
-				expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 				return done();
 			}
 			setTimeout(foo, 0);
@@ -329,7 +328,7 @@ describe('throw', () => {
 	it('should pass arguments into setTimeout()', function (done) {
 		this.timer = setTimeout(function () {
 			const stack = new Error().stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			expect(Array.prototype.slice.call(arguments)).to.deep.equal([1, 2, 3]);
 			done();
 		}, 0, 1, 2, 3);
@@ -342,7 +341,7 @@ describe('throw', () => {
 
 		this.interval = setInterval(function () {
 			const stack = new Error().stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			expect(Array.prototype.slice.call(arguments)).to.deep.equal([1, 2, 3]);
 
 			if (++counter >= 3) {
@@ -357,7 +356,7 @@ describe('throw', () => {
 	it('should pass arguments into setImmediate()', function (done) {
 		setImmediate(function () {
 			const stack = new Error().stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			expect(Array.prototype.slice.call(arguments)).to.deep.equal([1, 2, 3]);
 			done();
 		}, 1, 2, 3);
@@ -380,7 +379,7 @@ describe('uncaught exceptions', () => {
 	beforeEach(function () {
 		this.domainListeners = null;
 		if (process.domain) {
-			this.domainListeners = process.domain.listeners('error')
+			this.domainListeners = process.domain.listeners('error');
 			process.domain.removeAllListeners('error');
 		}
 
@@ -402,7 +401,7 @@ describe('uncaught exceptions', () => {
 	it('should throw an error from a setTimeout()', done => {
 		process.once('uncaughtException', error => {
 			const stack = error.stack;
-			expect(stack.split('-------------------------------------------------')).to.have.lengthOf(2);
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
 			done();
 		});
 
@@ -411,5 +410,229 @@ describe('uncaught exceptions', () => {
 		}
 
 		setTimeout(foo, 0);
+	});
+});
+
+describe('EventEmitter', () => {
+	it('should emit an event', () => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+		});
+		expect(emitter.on('foo', callback)).to.equal(emitter);
+		emitter.on('foo', callback);
+		emitter.on('foo', callback);
+		emitter.emit('foo');
+		expect(callback.calledThrice).to.be.true
+	});
+
+	it('should emit an event once', () => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+		});
+		expect(emitter.once('foo', callback)).to.equal(emitter);
+		emitter.emit('foo');
+		emitter.emit('foo');
+		expect(callback.calledOnce).to.be.true
+	});
+
+	it('should emit an event and capture stack from setTimeout()', done => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+		});
+		emitter.on('foo', callback);
+		setTimeout(() => {
+			emitter.emit('foo');
+			expect(callback.calledOnce).to.be.true
+			done();
+		}, 100);
+	});
+
+	it('should emit an event once and capture stack from setTimeout()', done => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+		});
+		emitter.once('foo', callback);
+		setTimeout(() => {
+			emitter.emit('foo');
+			expect(callback.calledOnce).to.be.true
+			done();
+		}, 100);
+	});
+
+	it('should listen and emit an event and capture stack from setTimeout()', done => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(3);
+		});
+		setTimeout(() => {
+			emitter.on('foo', callback);
+		}, 0);
+		setTimeout(() => {
+			emitter.emit('foo');
+			expect(callback.calledOnce).to.be.true
+			done();
+		}, 100);
+	});
+
+	it('should listen and emit an event and capture stack from setTimeout()', done => {
+		const emitter = new EventEmitter;
+		const callback = sinon.spy(() => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(3);
+		});
+		setTimeout(() => {
+			emitter.once('foo', callback);
+		}, 0);
+		setTimeout(() => {
+			emitter.emit('foo');
+			expect(callback.calledOnce).to.be.true
+			done();
+		}, 100);
+	});
+
+	it('should return get listeners', () => {
+		function foo1() {}
+		function foo2() {}
+
+		const emitter = new EventEmitter;
+		emitter.on('foo', foo1);
+		emitter.on('foo', foo2);
+
+		const listeners = emitter.listeners('foo');
+		expect(listeners).to.have.lengthOf(2);
+		expect(listeners[0]).to.equal(foo1);
+		expect(listeners[1]).to.equal(foo2);
+	});
+
+	it('should remove listener', () => {
+		function foo() {}
+		const emitter = new EventEmitter;
+		emitter.on('foo', foo);
+
+		let listeners = emitter.listeners('foo');
+		expect(listeners).to.have.lengthOf(1);
+		expect(listeners[0]).to.equal(foo);
+
+		expect(emitter.removeListener('foo', foo)).to.equal(emitter);
+		listeners = emitter.listeners('foo');
+		expect(listeners).to.have.lengthOf(0);
+	});
+});
+
+describe('Promises', () => {
+	it('should resolve a promise', done => {
+		const promise = new Promise((resolve, reject) => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+			resolve('foo');
+		});
+
+		expect(promise).to.have.property('__stack__');
+		expect(promise.__stack__).to.be.an.Array;
+
+		promise
+			.then(result => {
+				expect(result).to.equal('foo');
+				const stack = new Error().stack;
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+				done();
+			})
+			.catch(err => {
+				done(err);
+			});
+	});
+
+	it('should resolve a deferred promise', done => {
+		const promise = new Promise((resolve, reject) => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+			resolve('foo');
+		});
+
+		setTimeout(() => {
+			promise
+				.then(result => {
+					expect(result).to.equal('foo');
+					const stack = new Error().stack;
+					expect(stack.split(emptyFrame)).to.have.lengthOf(3);
+					done();
+				})
+				.catch(err => {
+					done(err);
+				});
+		}, 0);
+	});
+
+	it('should catch a rejection', done => {
+		const promise = new Promise((resolve, reject) => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+			reject(new Error('oh no'));
+		});
+
+		promise
+			.then(() => {
+				done(new Error('Reject was not caught'));
+			})
+			.catch(err => {
+				expect(err.message).to.equal('oh no');
+				const stack = new Error().stack;
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+				done();
+			});
+	});
+
+	it('should catch an error', done => {
+		const promise = new Promise((resolve, reject) => {
+			const stack = new Error().stack;
+			expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+			throw new Error('oh no');
+		});
+
+		promise
+			.then(() => {
+				done(new Error('Reject was not caught'));
+			})
+			.catch(err => {
+				expect(err.message).to.equal('oh no');
+				const stack = new Error().stack;
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+				done();
+			});
+	});
+
+	it('should resolve a promise chain', done => {
+		Promise.resolve('foo')
+			.then(result => {
+				expect(result).to.equal('foo');
+				const stack = new Error().stack;
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+				done();
+			})
+			.catch(err => {
+				done(err);
+			});
+	});
+
+	it('should reject a promise chain', done => {
+		Promise.reject(new Error('oh no'))
+			.then(() => {
+				done(new Error('Reject was not caught'));
+			})
+			.catch(err => {
+				expect(err.message).to.equal('oh no');
+				const stack = new Error().stack;
+				expect(stack.split(emptyFrame)).to.have.lengthOf(2);
+				done();
+			});
 	});
 });

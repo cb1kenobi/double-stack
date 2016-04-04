@@ -8,20 +8,19 @@
 [![Deps][david-image]][david-url]
 [![Dev Deps][david-dev-image]][david-dev-url]
 
-A modern implementation of long stack traces for Node.js similar to
-[longjohn][longjohn-url] and [superstack][superstack-url]. In fact, double-stack
-is largely based on these except double-stack is completely written in ES2015,
-includes a few bug fixes, source map support, and exposes a cleaner interface
-for overriding the default options.
+A modern implementation of long stack traces for Node.js based-on
+[longjohn][longjohn-url] and [superstack][superstack-url].
 
-> Note: double-stack does not wrap EventEmitters or Promises.
+## Features
 
-double-stack can also retrieve active handles (timers, servers, socket
-connections, child processes, etc). When `setTimeout()` or `setInterval()` is called, double-stack
-will add the long stack trace to the timer handle so you can see where the timer
-was actually initiated.
-
-> Note: double-stack requires Node.js 4 or newer.
+* Written in ES2015
+* Support for Node.js 4 and newer
+* Support for source maps
+* Support for EventEmitters
+* Support for Promises
+* Configurable stack limit, empty frame token, and stack formatter
+* Returns active handles (timers, servers, socket connections, child processes, etc)
+  * For `setTimeout()` or `setInterval()`, double-stack adds the stack to the timer object
 
 ## Installation
 

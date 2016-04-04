@@ -77,7 +77,7 @@ gulp.task('lint-test', function () {
 /*
  * test tasks
  */
-gulp.task('test', ['lint-src', 'lint-test'], function () {
+gulp.task('test', ['build', 'lint-test'], function (cb) {
 	var suite, grep;
 	var p = process.argv.indexOf('--suite');
 	if (p !== -1 && p + 1 < process.argv.length) {
@@ -88,31 +88,47 @@ gulp.task('test', ['lint-src', 'lint-test'], function () {
 		grep = process.argv[p + 1];
 	}
 
-	return gulp.src(['src/**/*.js', 'test/**/*.js'])
+	gulp.src(['test/**/*.js'])
 		.pipe($.plumber())
 		.pipe($.debug({ title: 'build' }))
+		.pipe($.sourcemaps.init())
 		.pipe($.babel())
-		.pipe($.injectModules())
-		.pipe($.filter(suite ? ['test/setup.js'].concat(suite.split(',').map(s => 'test/**/test-' + s + '.js')) : 'test/**/*.js'))
-		.pipe($.debug({ title: 'test' }))
-		.pipe($.mocha({ grep: grep }));
+		.pipe($.sourcemaps.write('.'))
+		.pipe(gulp.dest(path.join(distDir, 'test')))
+		.on('finish', function () {
+			gulp.src(['dist/test/**/*.js'])
+				.pipe($.plumber())
+				.pipe($.filter(suite ? ['dist/test/setup.js'].concat(suite.split(',').map(s => 'dist/test/**/test-' + s + '.js')) : 'dist/test/**/*.js'))
+				.pipe($.debug({ title: 'test' }))
+				.pipe($.mocha({ grep: grep }))
+				.on('end', cb);
+		});
 });
 
-gulp.task('coverage', ['lint-src', 'lint-test', 'clean-coverage'], function (cb) {
-	gulp.src('src/**/*.js')
+gulp.task('coverage', ['build', 'lint-test', 'clean-coverage'], function (cb) {
+	gulp.src(['src/**/*.js'])
 		.pipe($.plumber())
-		.pipe($.debug({ title: 'build' }))
+		.pipe($.debug({ title: 'build src' }))
+		.pipe($.sourcemaps.init())
 		.pipe($.babelIstanbul())
-		.pipe($.injectModules())
+		.pipe($.sourcemaps.write('.'))
+		.pipe(gulp.dest(distDir))
 		.on('finish', function () {
-			gulp.src('test/**/*.js')
+			gulp.src(['test/**/*.js'])
 				.pipe($.plumber())
-				.pipe($.debug({ title: 'test' }))
+				.pipe($.debug({ title: 'build tests' }))
+				.pipe($.sourcemaps.init())
 				.pipe($.babel())
-				.pipe($.injectModules())
-				.pipe($.mocha())
-				.pipe($.babelIstanbul.writeReports())
-				.on('end', cb);
+				.pipe($.sourcemaps.write('.'))
+				.pipe(gulp.dest(path.join(distDir, 'test')))
+				.on('finish', function () {
+					gulp.src(['dist/test/**/*.js'])
+						.pipe($.plumber())
+						.pipe($.debug({ title: 'test' }))
+						.pipe($.mocha())
+						.pipe($.babelIstanbul.writeReports())
+						.on('end', cb);
+				});
 		});
 });
 
