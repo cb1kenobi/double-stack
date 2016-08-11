@@ -9,6 +9,7 @@ sourceMap.install();
 const _listeners = EventEmitter.prototype.listeners;
 const _removeListener = EventEmitter.prototype.removeListener;
 const Timer = process.binding('timer_wrap').Timer;
+const FSEvent = process.binding('fs_event_wrap').FSEvent;
 let ERROR_ID = 1;
 let currentTraceError = null;
 
@@ -22,7 +23,7 @@ export const options = new Options;
  * @returns {Object}
  */
 export function getActiveHandles() {
-	const handles = { sockets: [], servers: [], timers: [], childProcesses: [], other: [] };
+	const handles = { sockets: [], servers: [], timers: [], childProcesses: [], fsWatchers: [], other: [] };
 
 	for (let handle of process._getActiveHandles()) {
 		if (handle instanceof Timer) {
@@ -38,6 +39,8 @@ export function getActiveHandles() {
 			handles.servers.push(handle);
 		} else if (handle instanceof ChildProcess) {
 			handles.childProcesses.push(handle);
+		} else if (handle instanceof EventEmitter && typeof handle.start === 'function' && typeof handle.close === 'function' && handle._handle instanceof FSEvent) {
+			handles.fsWatchers.push(handle);
 		} else {
 			handles.other.push(handle);
 		}

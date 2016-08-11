@@ -222,6 +222,23 @@ describe('active handles', () => {
 		});
 	});
 
+	it('should get active fs watchers', () => {
+		let handles = ds.getActiveHandles();
+		expect(handles.fsWatchers).to.have.lengthOf(0);
+
+		const watcher = fs.watch(process.cwd());
+
+		handles = ds.getActiveHandles();
+		try {
+			expect(handles.fsWatchers).to.have.lengthOf(1);
+			expect(handles.fsWatchers).to.include(watcher);
+		} catch (e) {
+			throw e;
+		} finally {
+			watcher.close();
+		}
+	});
+
 	it('should get child processes', done => {
 		let handles = ds.getActiveHandles();
 		expect(handles.childProcesses).to.have.lengthOf(0);
