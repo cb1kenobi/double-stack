@@ -4,7 +4,12 @@ import Options from './options';
 import { Server, Socket } from 'net';
 
 import sourceMap from 'source-map-support';
-sourceMap.install();
+
+// only install source map support if there's not already an Error.prepareStackTrace()
+if (!Error.prepareStackTrace) {
+	sourceMap.install();
+}
+const origPrepareStackTrace = Error.prepareStackTrace;
 
 const _listeners = EventEmitter.prototype.listeners;
 const _removeListener = EventEmitter.prototype.removeListener;
@@ -50,12 +55,15 @@ export function getActiveHandles() {
 }
 
 /**
- * Appends all parent stacks to this stack and returns a joined string of them.
+ * Caches the stack's call sites, then returns concatenates them with each parent's cached stack
+ * call sites.
  * @param {Error} error - The error object.
- * @param {Array<CallSite>} stack - The stack being processed.
- * @returns {String}
+ * @param {Array.<CallSite>} stack - The stack being processed.
+ * @param {Boolean} [recursing] - Set to `true` when walking parent scopes. This value should never
+ * be passed in.
+ * @returns {Array.<CallSite>}
  */
-function prepareStackTrace(error, stack, recursing) {
+function processStackTrace(error, stack, recursing) {
 	let cache = error.__cached_trace__;
 
 	if (!cache) {
@@ -78,7 +86,7 @@ function prepareStackTrace(error, stack, recursing) {
 		}
 
 		if (error.__parent__) {
-			const parent = prepareStackTrace(error.__parent__, error.__parent__.__stack__, true);
+			const parent = processStackTrace(error.__parent__, error.__parent__.__stack__, true);
 			if (parent && parent.length) {
 				cache.push(null);
 				cache.push.apply(cache, parent);
@@ -86,19 +94,51 @@ function prepareStackTrace(error, stack, recursing) {
 		}
 	}
 
-	return recursing ? cache : options.formatStack(error, cache, sourceMap) || '';
+	return cache;
+}
+
+/**
+ * Constructs the stack trace and renders it to a string.
+ * @param {Error} error - The error object.
+ * @param {Array.<CallSite>} stack - The stack being processed.
+ * @returns {String}
+ */
+function prepareStackTrace(error, stack) {
+	// first get the entire stack including parent scopes
+	const combined = processStackTrace(error, stack);
+
+	// remove all separators and remember where they go
+	const separators = [];
+	for (let i = combined.length - 1; i >= 0; i--) {
+		if (combined[i] === null) {
+			separators.unshift(i);
+			combined.splice(i, 1);
+		}
+	}
+
+	// call the origin prepareStackTrace()
+	const rendered = origPrepareStackTrace(error, combined);
+
+	// insert the seperators back into the stack trace
+	const lines = rendered.split('\n');
+	for (const i of separators) {
+		lines.splice(i + 1, 0, options.emptyFrame);
+	}
+	return lines.join('\n');
 }
 
 /**
  * Define our function that appends parent stacks to our specific stack, then
  * combine them together into a single string.
  */
-Error.prepareStackTrace = prepareStackTrace;
+if (Error.prepareStackTrace !== prepareStackTrace) {
+	Error.prepareStackTrace = prepareStackTrace;
+}
 
 /**
  * Wrap a timer based function and its callback to capture the stack.
  * @param {Function} originalFunction - The original function being wrapped.
- * @param {Number|Array<Number>} callbackPositions - The position in the original function arguments of the callback function.
+ * @param {Number|Array.<Number>} callbackPositions - The position in the original function arguments of the callback function.
  * @param {Boolean} [embedStack=false] - When true, embeds the stack into the returned handle.
  * @returns {Function}
  */

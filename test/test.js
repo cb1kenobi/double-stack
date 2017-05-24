@@ -1,4 +1,4 @@
-import * as ds from '../index';
+import * as ds from '../double-stack';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import net from 'net';
@@ -44,25 +44,6 @@ describe('options', () => {
 
 		expect(() => {
 			ds.options.emptyFrame = '';
-		}).to.throw(TypeError);
-	});
-
-	it('should get/set format stack function', () => {
-		const initial = ds.options.formatStack;
-		expect(initial).to.be.a.function;
-		const fn = () => {};
-		ds.options.formatStack = fn;
-		expect(ds.options.formatStack).to.equal(fn);
-		ds.options.formatStack = initial;
-	});
-
-	it('should fail to set format stack function', () => {
-		expect(() => {
-			ds.options.formatStack = null;
-		}).to.throw(TypeError);
-
-		expect(() => {
-			ds.options.formatStack = 'foo';
 		}).to.throw(TypeError);
 	});
 });
@@ -266,12 +247,10 @@ describe('throw', () => {
 		this.timer = null;
 		this.interval = null;
 		this.asyncTraceLimit = ds.options.asyncTraceLimit;
-		this.formatStack = ds.options.formatStack;
 	});
 
 	afterEach(function () {
 		ds.options.asyncTraceLimit = this.asyncTraceLimit;
-		ds.options.formatStack = this.formatStack;
 
 		if (this.timer) {
 			clearTimeout(this.timer);
@@ -377,18 +356,6 @@ describe('throw', () => {
 			expect(Array.prototype.slice.call(arguments)).to.deep.equal([1, 2, 3]);
 			done();
 		}, 1, 2, 3);
-	});
-
-	it('should handle a format stack function that returns something falsey', done => {
-		ds.options.formatStack = function () {};
-
-		function foo() {
-			const stack = new Error().stack;
-			expect(stack).to.equal('');
-			done();
-		}
-
-		setTimeout(foo, 0);
 	});
 });
 

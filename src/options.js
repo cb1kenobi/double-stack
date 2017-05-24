@@ -5,13 +5,6 @@ export default class Options {
 	constructor() {
 		this._asyncTraceLimit = 10;
 		this._emptyFrame = '-------------------------------------------------';
-		this._formatStack = (err, frames, sourceMap) => {
-			const lines = [ err.toString() ];
-			for (let frame of frames) {
-				lines.push(frame ? '    at ' + sourceMap.wrapCallSite(frame) : this.emptyFrame);
-			}
-			return lines.join('\n');
-		};
 	}
 
 	/**
@@ -50,24 +43,5 @@ export default class Options {
 			throw new TypeError('emptyFrame must be a non-empty string');
 		}
 		this._emptyFrame = String(value);
-	}
-
-	/**
-	 * Gets the current format stack function.
-	 * @returns {Function}
-	 */
-	get formatStack() {
-		return this._formatStack;
-	}
-
-	/**
-	 * Sets a new format stack function.
-	 * @param {Function} value - The new format stack function.
-	 */
-	set formatStack(value) {
-		if (typeof value !== 'function') {
-			throw new TypeError('formatStack must be a function');
-		}
-		this._formatStack = value;
 	}
 }

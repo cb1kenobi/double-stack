@@ -18,7 +18,7 @@ A modern implementation of long stack traces for Node.js based-on
 * Support for source maps
 * Support for EventEmitters
 * Support for Promises
-* Configurable stack limit, empty frame token, and stack formatter
+* Configurable stack limit and empty frame token
 * Returns active handles (timers, servers, socket connections, child processes, etc)
   * For `setTimeout()` or `setInterval()`, double-stack adds the stack to the timer object
 
@@ -54,23 +54,6 @@ A positive integer that is greater than or equal to zero. Defaults to `10`.
 ### ds.options.emptyFrame (String)
 
 A string to print representing an empty frame in the stack. Defaults to `-` x 50.
-
-### ds.options.formatStack (Function)
-
-A function that receives the originating `Error` object, an array of
-`CallSite` objects, and the source map object.
-
-Here's the default implementation:
-
-```javascript
-(err, frames, sourceMap) => {
-    const lines = [ err.toString() ];
-    for (let frame of frames) {
-        lines.push(frame ? '    at ' + sourceMap.wrapCallSite(frame) : this.emptyFrame);
-    }
-    return lines.join('\n');
-}
-```
 
 ## getActiveHandles()
 
@@ -117,7 +100,7 @@ licensed under the MIT license.
 
 (The MIT License)
 
-Copyright (c) 2016 Chris Barber<br>
+Copyright (c) 2016-2017 Chris Barber<br>
 Copyright (c) 2012 Matt Insler<br>
 Copyright (c) 2013 Roman Shtylman<br>
 Copyright (c) 2011 Thomas Robinson tom@tlrobinson.net
