@@ -1,9 +1,8 @@
-import { EventEmitter } from 'events';
-import { ChildProcess } from 'child_process';
-import Options from './options';
-import { Server, Socket } from 'net';
-
-import sourceMap from 'source-map-support';
+const EventEmitter = require('events').EventEmitter;
+const ChildProcess = require('child_process').ChildProcess;
+const Options = require('./options');
+const net = require('net');
+const sourceMap = require('source-map-support');
 
 // only install source map support if there's not already an Error.prepareStackTrace()
 if (!Error.prepareStackTrace) {
@@ -21,13 +20,13 @@ let currentTraceError = null;
 /**
  * Initialize the options.
  */
-export const options = new Options;
+const options = module.exports.options = new Options;
 
 /**
  * Returns an object with active socket, server, timer, and other handles.
  * @returns {Object}
  */
-export function getActiveHandles() {
+module.exports.getActiveHandles = function getActiveHandles() {
 	const handles = { sockets: [], servers: [], timers: [], childProcesses: [], fsWatchers: [], other: [] };
 
 	for (let handle of process._getActiveHandles()) {
@@ -38,9 +37,9 @@ export function getActiveHandles() {
 				handles.timers.push(t);
 				t = t._idleNext;
 			}
-		} else if (handle instanceof Socket) {
+		} else if (handle instanceof net.Socket) {
 			handles.sockets.push(handle);
-		} else if (handle instanceof Server) {
+		} else if (handle instanceof net.Server) {
 			handles.servers.push(handle);
 		} else if (handle instanceof ChildProcess) {
 			handles.childProcesses.push(handle);
@@ -52,7 +51,7 @@ export function getActiveHandles() {
 	}
 
 	return handles;
-}
+};
 
 /**
  * Caches the stack's call sites, then returns concatenates them with each parent's cached stack

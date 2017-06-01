@@ -1,7 +1,7 @@
 /**
  * Tracks various options.
  */
-export default class Options {
+module.exports = class Options {
 	constructor() {
 		this._asyncTraceLimit = 10;
 		this._emptyFrame = '-------------------------------------------------';
@@ -44,4 +44,4 @@ export default class Options {
 		}
 		this._emptyFrame = String(value);
 	}
-}
+};

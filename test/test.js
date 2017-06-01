@@ -1,8 +1,8 @@
-import * as ds from '../double-stack';
-import { EventEmitter } from 'events';
-import fs from 'fs';
-import net from 'net';
-import { spawn } from 'child_process';
+const ds = require('../double-stack');
+const EventEmitter = require('events').EventEmitter;
+const fs = require('fs');
+const net = require('net');
+const spawn = require('child_process').spawn;
 
 const emptyFrame = ds.options.emptyFrame;
 
@@ -109,26 +109,26 @@ describe('active handles', () => {
 
 		const htimer = handles.timers[handles.timers.length - 1];
 		expect(htimer._idleTimeout).to.equal(100);
-		expect(htimer).to.be.an.Object;
+		expect(htimer).to.be.an('object');
 		expect(htimer).to.have.property('__stack__');
 
 		const frame = htimer.__stack__[0];
-		expect(frame).to.be.an.Object;
+		expect(frame).to.be.an('object');
 		expect(frame).to.have.all.keys('fileName', 'scriptName', 'evalOrigin', 'typeName', 'functionName', 'methodName', 'lineNumber', 'columnNumber', 'isToplevel', 'isEval', 'isNative', 'isConstructor', 'toString');
-		expect(frame.fileName).to.be.a.String;
-		expect(frame.scriptName).to.be.a.String;
-		expect(frame.evalOrigin).to.be.a.String;
-		expect(frame.typeName).to.be.a.String;
-		expect(frame.functionName).to.be.a.String;
+		expect(frame.fileName).to.be.a('string');
+		expect(frame.scriptName).to.be.a('string');
+		expect(frame.evalOrigin).to.be.a('string');
+		expect(frame.typeName).to.be.a('string');
+		expect(frame.functionName).to.be.a('string');
 		expect(frame.functionName).to.equal('testFunction');
 		expect(frame.methodName).to.be.null;
-		expect(frame.lineNumber).to.be.a.Number;
-		expect(frame.columnNumber).to.be.a.Number;
+		expect(frame.lineNumber).to.be.a('number');
+		expect(frame.columnNumber).to.be.a('number');
 		expect(frame.isToplevel).to.be.false;
 		expect(frame.isEval).to.be.false;
 		expect(frame.isNative).to.be.false;
 		expect(frame.isConstructor).to.be.false;
-		expect(frame.toString()).to.be.a.String;
+		expect(frame.toString()).to.be.a('string');
 	});
 
 	it('should get active setInterval timer', function (done) {
@@ -271,7 +271,7 @@ describe('throw', () => {
 
 	it('should throw error from other modules', done => {
 		fs.readFile('not_there.txt', (err, contents) => {
-			expect(err).to.be.instanceof.Error;
+			expect(err).to.be.an.instanceof(Error);
 			expect(err.stack).to.have.string('Error: ENOENT: no such file or directory, open \'not_there.txt\'');
 			done();
 		});
@@ -521,7 +521,7 @@ describe('Promises', () => {
 		});
 
 		expect(promise).to.have.property('__stack__');
-		expect(promise.__stack__).to.be.an.Array;
+		expect(promise.__stack__).to.be.an.instanceof(Array);
 
 		promise
 			.then(result => {
